@@ -1,0 +1,2106 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบแนบท้ายเอกสาร ปพ.5 อัตโนมัติ - Admin Dashboard</title>
+
+    <!-- =====================================================
+         GOOGLE FONT & ICONS
+    ====================================================== -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Boxicons for Modern Admin Dashboard Icons -->
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+
+    <!-- =====================================================
+         PDF-LIB
+    ====================================================== -->
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+
+    <style>
+        /* =====================================================
+           TH SARABUNPSK (Required for Canvas Drawing)
+        ====================================================== */
+        @font-face {
+            font-family: 'TH SarabunPSK';
+            src: local('TH SarabunPSK'), local('THSarabunPSK');
+            font-weight: 400;
+            font-style: normal;
+        }
+        @font-face {
+            font-family: 'TH SarabunPSK';
+            src: local('TH SarabunPSK'), local('THSarabunPSK');
+            font-weight: 700;
+            font-style: normal;
+        }
+
+        /* =====================================================
+           RESET & VARIABLES (Vue Admin Theme)
+        ====================================================== */
+        :root {
+            --primary: #4361ee;
+            --primary-hover: #3a53d0;
+            --success: #00ab55;
+            --success-hover: #009148;
+            --danger: #ff4842;
+            --background: #f4f6f8;
+            --surface: #ffffff;
+            --text-main: #212b36;
+            --text-muted: #637381;
+            --border: #e5e8eb;
+            --sidebar-bg: #1c2536;
+            --sidebar-text: #9da4ae;
+            --sidebar-active: #252e3e;
+            --radius-md: 12px;
+            --radius-sm: 8px;
+            --shadow-card: 0 0 2px 0 rgba(145, 158, 171, 0.2), 0 12px 24px -4px rgba(145, 158, 171, 0.12);
+        }
+
+        * { box-sizing: border-box; }
+        
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Public Sans', 'Sarabun', sans-serif;
+            background-color: var(--background);
+            color: var(--text-main);
+            display: flex;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* =====================================================
+           DASHBOARD LAYOUT
+        ====================================================== */
+        .sidebar {
+            width: 280px;
+            background-color: var(--sidebar-bg);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s ease;
+            position: fixed;
+            height: 100vh;
+            z-index: 100;
+        }
+
+        .sidebar-logo {
+            padding: 24px;
+            font-size: 20px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #fff;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .sidebar-logo i { color: var(--primary); font-size: 28px; }
+
+        .sidebar-menu {
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .menu-item {
+            padding: 12px 16px;
+            border-radius: var(--radius-sm);
+            color: var(--sidebar-text);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 500;
+            transition: 0.2s;
+            cursor: pointer;
+        }
+
+        .menu-item:hover {
+            background-color: rgba(255,255,255,0.04);
+            color: #fff;
+        }
+
+        .menu-item.active {
+            background-color: var(--sidebar-active);
+            color: var(--primary);
+        }
+
+        .main-wrapper {
+            flex: 1;
+            margin-left: 280px;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .topbar {
+            height: 70px;
+            background: var(--surface);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 40px;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            backdrop-filter: blur(6px);
+            background-color: rgba(255, 255, 255, 0.8);
+        }
+
+        .topbar-left { display: flex; align-items: center; gap: 16px; }
+        .topbar-right { display: flex; align-items: center; gap: 20px; }
+        
+        .avatar {
+            width: 40px; height: 40px;
+            border-radius: 50%;
+            background: #e2e8f0;
+            display: flex; align-items: center; justify-content: center;
+            overflow: hidden;
+        }
+        .avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+        /* =====================================================
+           PAGE CONTENT & CARDS
+        ====================================================== */
+        .content {
+            padding: 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .page-header {
+            margin-bottom: 30px;
+        }
+
+        .page-header h1 {
+            margin: 0 0 8px 0;
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .page-header p {
+            margin: 0;
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        .card {
+            background: var(--surface);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-card);
+            padding: 32px;
+            margin-bottom: 24px;
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin: 0 0 24px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .card-title i { color: var(--primary); font-size: 22px; }
+
+        /* =====================================================
+           FORM ELEMENTS
+        ====================================================== */
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+        }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .field.full { grid-column: 1 / -1; }
+
+        .field label {
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--text-main);
+        }
+
+        .field input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-family: inherit;
+            font-size: 15px;
+            color: var(--text-main);
+            transition: all 0.2s ease;
+            background: #f9fafb;
+        }
+
+        .field input:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: #fff;
+            box-shadow: 0 0 0 4px rgba(67, 97, 238, 0.1);
+        }
+
+        /* =====================================================
+           UPLOAD SECTION
+        ====================================================== */
+        .upload-box {
+            border: 2px dashed var(--border);
+            border-radius: var(--radius-md);
+            padding: 40px 20px;
+            text-align: center;
+            background: #f9fafb;
+            transition: all 0.2s;
+            position: relative;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .upload-box:hover {
+            border-color: var(--primary);
+            background: rgba(67, 97, 238, 0.04);
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            color: var(--primary);
+            margin-bottom: 16px;
+        }
+
+        .upload-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-main);
+            margin-bottom: 8px;
+        }
+
+        .upload-desc {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 16px;
+        }
+
+        /* Hidden actual input covering the box */
+        .upload-box input[type="file"] {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            opacity: 0; cursor: pointer;
+        }
+
+        .file-name {
+            font-size: 14px;
+            color: var(--primary);
+            font-weight: 600;
+            background: rgba(67, 97, 238, 0.1);
+            padding: 6px 12px;
+            border-radius: 6px;
+            display: inline-block;
+            word-break: break-all;
+        }
+        .file-name:empty { display: none; }
+
+        /* =====================================================
+           BUTTONS
+        ====================================================== */
+        .button-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-top: 32px;
+        }
+
+        .btn {
+            border: none;
+            border-radius: var(--radius-sm);
+            padding: 12px 24px;
+            font-family: inherit;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 8px 16px 0 rgba(0,0,0,0.08);
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px 0 rgba(0,0,0,0.15);
+        }
+
+        .btn:disabled {
+            background: #e2e8f0 !important;
+            color: #94a3b8 !important;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: #ffffff;
+        }
+        .btn-primary:hover { background: var(--primary-hover); }
+
+        .btn-success {
+            background: var(--success);
+            color: #ffffff;
+        }
+        .btn-success:hover { background: var(--success-hover); }
+
+        /* =====================================================
+           STATUS & RESULT
+        ====================================================== */
+        .status {
+            display: none;
+            margin-top: 24px;
+            padding: 16px;
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            font-weight: 500;
+            display: none;
+            align-items: center;
+            gap: 8px;
+        }
+        .status.show { display: flex; }
+
+        .status.info { background: #e0f2fe; color: #0284c7; }
+        .status.success { background: #dcfce7; color: #166534; }
+        .status.error { background: #fee2e2; color: #991b1b; }
+
+        .result {
+            display: none;
+            margin-top: 24px;
+        }
+        .result.show { display: block; }
+
+        .result-card {
+            background: rgba(0, 171, 85, 0.08);
+            border: 1px solid rgba(0, 171, 85, 0.2);
+            border-radius: var(--radius-sm);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .result-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--success);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .result-pages {
+            font-size: 14px;
+            color: var(--text-main);
+        }
+
+        .note {
+            margin-top: 24px;
+            font-size: 13px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* =====================================================
+           RESPONSIVE
+        ====================================================== */
+        @media(max-width: 992px) {
+            .sidebar { transform: translateX(-100%); }
+            .main-wrapper { margin-left: 0; }
+            .topbar { padding: 0 20px; }
+            .content { padding: 24px 20px; }
+        }
+        @media(max-width: 768px) {
+            .form-grid { grid-template-columns: 1fr; }
+            .button-row { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- =====================================================
+         SIDEBAR (VUE TEMPLATE STYLE)
+    ====================================================== -->
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <i class='bx bxs-polygon'></i>
+            <span>SIKHARIN-Admin</span>
+        </div>
+        <div class="sidebar-menu">
+            <div class="menu-item">
+                <i class='bx bx-grid-alt'></i>
+                <span>แดชบอร์ด</span>
+            </div>
+            <div class="menu-item active">
+                <i class='bx bx-file'></i>
+                <span>ระบบแนบท้าย ปพ.5</span>
+            </div>
+            <div class="menu-item">
+                <i class='bx bx-history'></i>
+                <span>ประวัติการทำงาน</span>
+            </div>
+            <div class="menu-item">
+                <i class='bx bx-cog'></i>
+                <span>การตั้งค่า</span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- =====================================================
+         MAIN CONTENT WRAPPER
+    ====================================================== -->
+    <div class="main-wrapper">
+        
+        <!-- TOPBAR -->
+        <header class="topbar">
+            <div class="topbar-left">
+                <i class='bx bx-menu' style="font-size: 24px; color: var(--text-muted); cursor: pointer;"></i>
+                <i class='bx bx-search' style="font-size: 20px; color: var(--text-muted);"></i>
+            </div>
+            <div class="topbar-right">
+                <i class='bx bx-bell' style="font-size: 20px; color: var(--text-muted);"></i>
+                <div class="avatar">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Admin" alt="Admin Avatar">
+                </div>
+            </div>
+        </header>
+
+        <!-- PAGE CONTENT -->
+        <main class="content">
+            
+            <div class="page-header">
+                <h1>ระบบแนบท้ายเอกสาร ปพ.5 อัตโนมัติ</h1>
+                <p>จัดการเอกสารและเพิ่มลายเซ็น/การลงนามอัตโนมัติได้อย่างรวดเร็ว</p>
+            </div>
+
+            <!-- DATA FORM CARD -->
+            <div class="card">
+                <div class="card-title">
+                    <i class='bx bx-user-circle'></i>
+                    ข้อมูลสำหรับการลงนาม
+                </div>
+                
+                <div class="form-grid">
+                    <!-- ครูผู้สอน -->
+                    <div class="field">
+                        <label>1. ครูผู้สอน</label>
+                        <input type="text" id="in_teacher" value="ระบุชื่อ-นามสกุลครูผู้สอน">
+                    </div>
+                    <!-- เจ้าหน้าที่ -->
+                    <div class="field">
+                        <label>2. เจ้าหน้าที่วัดผลกลุ่มสาระฯ</label>
+                        <input type="text" id="in_evaluator" value="ระบุชื่อ-นามสกุลเจ้าหน้าที่วัดผลกลุ่มสาระฯ">
+                    </div>
+                    <!-- หัวหน้ากลุ่มสาระ -->
+                    <div class="field">
+                        <label>3. หัวหน้ากลุ่มสาระการเรียนรู้</label>
+                        <input type="text" id="in_head_dept" value="ระบุชื่อ-นามสกุลหัวหน้ากลุ่มสาระการเรียนรู้">
+                    </div>
+                    <!-- ผู้อำนวยการ -->
+                    <div class="field">
+                        <label>4. ผู้อำนวยการโรงเรียน</label>
+                        <input type="text" id="in_director" value="ระบุชื่อ-นามสกุลผู้อำนวยการโรงเรียน">
+                    </div>
+                    <!-- วันที่ -->
+                    <div class="field full">
+                        <label>5. วันที่</label>
+                        <input type="text" id="in_date" value="ระบุวันที่ เช่น 1 มิถุนายน 2567">
+                    </div>
+                </div>
+            </div>
+
+            <!-- UPLOAD & PROCESS CARD -->
+            <div class="card">
+                <div class="card-title">
+                    <i class='bx bx-upload'></i>
+                    อัปโหลดไฟล์ PDF ปพ.5
+                </div>
+
+                <div class="upload-box">
+                    <i class='bx bxs-file-pdf upload-icon'></i>
+                    <div class="upload-title">ลากไฟล์มาวางที่นี่ หรือคลิกเพื่อเลือกไฟล์</div>
+                    <div class="upload-desc">รองรับเฉพาะไฟล์ .pdf เท่านั้น</div>
+                    <input type="file" id="pdfFile" accept="application/pdf">
+                    <div id="fileName" class="file-name"></div>
+                </div>
+
+                <!-- BUTTONS -->
+                <div class="button-row">
+                    <button id="processBtn" class="btn btn-primary">
+                        <i class='bx bx-cog'></i> ประมวลผลเอกสาร
+                    </button>
+                    <button id="downloadBtn" class="btn btn-success" disabled>
+                        <i class='bx bx-download'></i> ดาวน์โหลด PDF
+                    </button>
+                </div>
+
+                <!-- STATUS -->
+                <div id="status" class="status"></div>
+
+                <!-- RESULT -->
+                <div id="result" class="result">
+                    <div class="result-card">
+                        <div class="result-title">
+                            <i class='bx bxs-check-circle'></i> ประมวลผลสำเร็จเรียบร้อย
+                        </div>
+                        <div class="result-pages">
+                            เอกสารทั้งหมด: <strong id="resultPages">0</strong> หน้า
+                        </div>
+                        <div style="font-size: 13px; color: var(--success-hover);">
+                            ไฟล์ของคุณพร้อมสำหรับดาวน์โหลดแล้ว
+                        </div>
+                    </div>
+                </div>
+
+                <div class="note">
+                    <i class='bx bx-info-circle'></i> ไฟล์ PDF ต้นฉบับของคุณจะไม่ถูกเขียนทับ
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+<!-- =====================================================
+     JAVASCRIPT (ORIGINAL CODE UNCHANGED)
+====================================================== -->
+<script>
+/* =========================================================
+   PDF-LIB
+========================================================= */
+const {
+    PDFDocument
+} = PDFLib;
+
+/* =========================================================
+   GLOBAL
+========================================================= */
+let originalFileName =
+    "";
+let generatedPdfBytes =
+    null;
+
+/* =========================================================
+   SEARCH TARGET
+   ใช้งานภายในระบบเท่านั้น
+========================================================= */
+const TARGET_TEXT =
+    "จจานวน";
+
+/* =========================================================
+   SIGNATURE SETTINGS
+========================================================= */
+
+/*
+   ระยะขอบด้านซ้าย/ขวา
+*/
+const MARGIN_CM =
+    0.25;
+
+/*
+   หน้า 1
+   จำกัดพื้นที่ 2 cm
+*/
+const PAGE1_HEIGHT_CM =
+    2;
+
+/*
+   หน้า 2
+*/
+const PAGE2_HEIGHT_PT =
+    150;
+
+/*
+   ความละเอียด Canvas
+*/
+const DPI =
+    180;
+
+/*
+   ฟอนต์
+*/
+const SIGN_FONT =
+    "TH SarabunPSK";
+
+/*
+   ขนาดฟอนต์
+*/
+const SIGN_FONT_PT =
+    14;
+
+/* =========================================================
+   ELEMENTS
+========================================================= */
+const pdfFile =
+    document.getElementById(
+        "pdfFile"
+    );
+
+const fileName =
+    document.getElementById(
+        "fileName"
+    );
+
+const processBtn =
+    document.getElementById(
+        "processBtn"
+    );
+
+const downloadBtn =
+    document.getElementById(
+        "downloadBtn"
+    );
+
+const statusBox =
+    document.getElementById(
+        "status"
+    );
+
+const resultBox =
+    document.getElementById(
+        "result"
+    );
+
+/* =========================================================
+   FILE SELECT
+========================================================= */
+pdfFile.addEventListener(
+    "change",
+    function(){
+        if(
+            !this.files ||
+            !this.files.length
+        ){
+            fileName.textContent =
+                "";
+            downloadBtn.disabled =
+                true;
+            generatedPdfBytes =
+                null;
+            return;
+        }
+
+        originalFileName =
+            this.files[0].name;
+
+        generatedPdfBytes =
+            null;
+
+        downloadBtn.disabled =
+            true;
+
+        resultBox.classList.remove(
+            "show"
+        );
+
+        fileName.textContent =
+            "📄 " +
+            originalFileName;
+    }
+);
+
+/* =========================================================
+   STATUS
+========================================================= */
+function showStatus(
+    message,
+    type = "info"
+){
+    statusBox.className =
+        "status show " +
+        type;
+    statusBox.innerHTML =
+        message;
+}
+
+/* =========================================================
+   GET FORM DATA
+========================================================= */
+function getFormData(){
+    return {
+        teacher:
+            document.getElementById(
+                "in_teacher"
+            ).value.trim(),
+        evaluator:
+            document.getElementById(
+                "in_evaluator"
+            ).value.trim(),
+        headDept:
+            document.getElementById(
+                "in_head_dept"
+            ).value.trim(),
+        director:
+            document.getElementById(
+                "in_director"
+            ).value.trim(),
+        date:
+            document.getElementById(
+                "in_date"
+            ).value.trim()
+    };
+}
+
+/* =========================================================
+   WAIT FOR FONT
+========================================================= */
+async function waitForFonts(){
+    if(
+        document.fonts &&
+        document.fonts.ready
+    ){
+        await document.fonts.ready;
+    }
+}
+
+/* =========================================================
+   CM → PX
+========================================================= */
+function cmToPx(
+    cm
+){
+    return Math.round(
+        cm /
+        2.54 *
+        DPI
+    );
+}
+
+/* =========================================================
+   CM → POINT
+========================================================= */
+function cmToPt(
+    cm
+){
+    return (
+        cm *
+        72 /
+        2.54
+    );
+}
+
+/* =========================================================
+   PT → PX
+========================================================= */
+function ptToPx(
+    pt
+){
+    return (
+        pt *
+        DPI /
+        72
+    );
+}
+
+/* =========================================================
+   NORMALIZE THAI TEXT
+========================================================= */
+function normalizeThaiText(
+    text
+){
+    return String(
+        text || ""
+    )
+        .normalize("NFC")
+        .replace(
+            /[\u200B-\u200D\uFEFF]/g,
+            ""
+        )
+        .replace(
+            /\s+/g,
+            ""
+        )
+        .trim();
+}
+
+/* =========================================================
+   SET CANVAS FONT
+========================================================= */
+function setCanvasFont(
+    ctx,
+    size = SIGN_FONT_PT,
+    bold = false
+){
+    ctx.font =
+        `${bold ? "700" : "400"} ${
+            ptToPx(size)
+        }px "${SIGN_FONT}"`;
+}
+
+/* =========================================================
+   DRAW TEXT
+========================================================= */
+function drawText(
+    ctx,
+    text,
+    x,
+    y,
+    options = {}
+){
+    const {
+        size =
+            SIGN_FONT_PT,
+        bold =
+            false,
+        align =
+            "left",
+        baseline =
+            "top"
+    } = options;
+
+    setCanvasFont(
+        ctx,
+        size,
+        bold
+    );
+
+    ctx.fillStyle =
+        "#000000";
+
+    ctx.textAlign =
+        align;
+
+    ctx.textBaseline =
+        baseline;
+
+    ctx.fillText(
+        text,
+        x,
+        y
+    );
+}
+
+/* =========================================================
+   DRAW FIT TEXT
+========================================================= */
+function drawFitText(
+    ctx,
+    text,
+    centerX,
+    y,
+    maxWidth,
+    options = {}
+){
+    let size =
+        options.size ||
+        SIGN_FONT_PT;
+
+    const minSize =
+        options.minSize ||
+        9;
+
+    while(
+        size > minSize
+    ){
+        setCanvasFont(
+            ctx,
+            size,
+            options.bold ||
+            false
+        );
+
+        if(
+            ctx.measureText(
+                text
+            ).width <=
+            maxWidth
+        ){
+            break;
+        }
+
+        size -=
+            0.5;
+    }
+
+    drawText(
+        ctx,
+        text,
+        centerX,
+        y,
+        {
+            ...options,
+            size:
+                size,
+            align:
+                "center"
+        }
+    );
+}
+
+/* =========================================================
+   DRAW THREE-LINE SIGNATURE
+=========================================================
+ลงชื่อ........................................
+(ชื่อ)
+ตำแหน่ง
+========================================================= */
+function drawThreeLineSignature(
+    ctx,
+    centerX,
+    topY,
+    maxWidth,
+    name,
+    position
+){
+    const lineHeight =
+        ptToPx(
+            14
+        );
+
+    /*
+       บรรทัด 1
+    */
+    drawText(
+        ctx,
+        "ลงชื่อ................................................",
+        centerX,
+        topY,
+        {
+            size:
+                14,
+            align:
+                "center"
+        }
+    );
+
+    /*
+       บรรทัด 2
+    */
+    drawFitText(
+        ctx,
+        "(" +
+        name +
+        ")",
+        centerX,
+        topY +
+        lineHeight,
+        maxWidth,
+        {
+            size:
+                14
+        }
+    );
+
+    /*
+       บรรทัด 3
+    */
+    drawFitText(
+        ctx,
+        position,
+        centerX,
+        topY +
+        lineHeight * 2,
+        maxWidth,
+        {
+            size:
+                14
+        }
+    );
+}
+
+/* =========================================================
+   DRAW INLINE SIGNATURE
+=========================================================
+ลงชื่อ........................................ชื่อตำแหน่ง
+========================================================= */
+function drawInlineSignature(
+    ctx,
+    x,
+    y,
+    totalWidth,
+    position
+){
+    /*
+       ส่วนลงชื่อ
+    */
+    const signText =
+        "ลงชื่อ........................................";
+
+    /*
+       ตั้งฟอนต์ 14 pt
+    */
+    setCanvasFont(
+        ctx,
+        14,
+        false
+    );
+
+    ctx.fillStyle =
+        "#000000";
+
+    ctx.textAlign =
+        "left";
+
+    ctx.textBaseline =
+        "top";
+
+    /*
+       วาดส่วนลงชื่อ
+    */
+    ctx.fillText(
+        signText,
+        x,
+        y
+    );
+
+    /*
+       วัดความกว้างจริง
+    */
+    setCanvasFont(
+        ctx,
+        14,
+        false
+    );
+
+    const signWidth =
+        ctx.measureText(
+            signText
+        ).width;
+
+    /*
+       ให้ตำแหน่งต่อทันที
+    */
+    const gap =
+        ptToPx(
+            1
+        );
+
+    const positionX =
+        x +
+        signWidth +
+        gap;
+
+    /*
+       พื้นที่ของตำแหน่ง
+    */
+    const remainingWidth =
+        Math.max(
+            ptToPx(40),
+            totalWidth -
+            signWidth -
+            gap
+        );
+
+    /*
+       ปรับขนาดเฉพาะตำแหน่ง
+       หากยาวเกิน
+    */
+    let positionSize =
+        14;
+
+    while(
+        positionSize > 10
+    ){
+        setCanvasFont(
+            ctx,
+            positionSize,
+            false
+        );
+
+        if(
+            ctx.measureText(
+                position
+            ).width <=
+            remainingWidth
+        ){
+            break;
+        }
+
+        positionSize -=
+            0.5;
+    }
+
+    /*
+       ตำแหน่งใช้ LEFT ALIGN
+       เพื่อติดกับจุด
+    */
+    drawText(
+        ctx,
+        position,
+        positionX,
+        y,
+        {
+            size:
+                positionSize,
+            align:
+                "left"
+        }
+    );
+}
+
+/* =========================================================
+   CREATE SIGNATURE CANVAS
+========================================================= */
+async function createSignatureCanvas(
+    pageType,
+    pageWidthPx,
+    canvasHeightPx
+){
+    await waitForFonts();
+
+    const canvas =
+        document.createElement(
+            "canvas"
+        );
+
+    canvas.width =
+        pageWidthPx;
+
+    canvas.height =
+        canvasHeightPx;
+
+    const ctx =
+        canvas.getContext(
+            "2d"
+        );
+
+    /*
+       Transparent
+       ห้ามเติมพื้นหลังสีขาว
+    */
+    ctx.clearRect(
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+
+    const margin =
+        cmToPx(
+            MARGIN_CM
+        );
+
+    const contentWidth =
+        canvas.width -
+        margin * 2;
+
+    const data =
+        getFormData();
+
+    /* =====================================================
+       PAGE 1
+    ====================================================== */
+    if(
+        pageType === 1
+    ){
+        /*
+           3 คอลัมน์เท่ากัน
+        */
+        const columnWidth =
+            contentWidth /
+            3;
+
+        const center1 =
+            margin +
+            columnWidth *
+            0.5;
+
+        const center2 =
+            margin +
+            columnWidth *
+            1.5;
+
+        const center3 =
+            margin +
+            columnWidth *
+            2.5;
+
+        const lineHeight =
+            ptToPx(
+                14
+            );
+
+        const blockHeight =
+            lineHeight *
+            3;
+
+        /*
+           จัดให้อยู่ด้านล่าง
+        */
+        const startY =
+            canvasHeightPx -
+            blockHeight -
+            margin;
+
+        /*
+           คอลัมน์ 1
+        */
+        drawThreeLineSignature(
+            ctx,
+            center1,
+            startY,
+            columnWidth * 0.90,
+            data.teacher,
+            "ครูผู้สอน"
+        );
+
+        /*
+           คอลัมน์ 2
+        */
+        drawThreeLineSignature(
+            ctx,
+            center2,
+            startY,
+            columnWidth * 0.90,
+            data.evaluator,
+            "เจ้าหน้าที่วัดผลกลุ่มสาระการเรียนรู้"
+        );
+
+        /*
+           คอลัมน์ 3
+        */
+        drawThreeLineSignature(
+            ctx,
+            center3,
+            startY,
+            columnWidth * 0.90,
+            data.headDept,
+            "หัวหน้ากลุ่มสาระการเรียนรู้"
+        );
+    }
+
+    /* =====================================================
+       PAGE 2
+    ====================================================== */
+    if(
+        pageType === 2
+    ){
+        /*
+           3 คอลัมน์
+           ซ้าย 29%
+           กลาง 44%
+           ขวา 27%
+        */
+        const leftWidth =
+            contentWidth *
+            0.29;
+
+        const middleWidth =
+            contentWidth *
+            0.44;
+
+        const rightWidth =
+            contentWidth *
+            0.27;
+
+        const leftX =
+            margin;
+
+        const middleX =
+            leftX +
+            leftWidth;
+
+        const rightX =
+            middleX +
+            middleWidth;
+
+        const leftCenter =
+            leftX +
+            leftWidth /
+            2;
+
+        const middleCenter =
+            middleX +
+            middleWidth /
+            2;
+
+        /* =================================================
+           COLUMN LEFT
+        ================================================== */
+        /*
+           ชุดที่ 1
+        */
+        drawThreeLineSignature(
+            ctx,
+            leftCenter,
+            ptToPx(28),
+            leftWidth * 0.94,
+            data.evaluator,
+            "เจ้าหน้าที่วัดผลกลุ่มสาระการเรียนรู้"
+        );
+
+        /*
+           ชุดที่ 2
+        */
+        drawThreeLineSignature(
+            ctx,
+            leftCenter,
+            ptToPx(100),
+            leftWidth * 0.94,
+            data.headDept,
+            "หัวหน้ากลุ่มสาระการเรียนรู้"
+        );
+
+        /* =================================================
+           COLUMN MIDDLE
+        ================================================== */
+        /*
+           -------------------------------------------------
+           หัวข้อ
+           ชิดซ้ายตรงกับ "ลงชื่อ"
+           -------------------------------------------------
+        */
+        const middleLeft =
+            middleX;
+
+        drawText(
+            ctx,
+            "เรียนเสนอเพื่อโปรดพิจารณา",
+            middleLeft,
+            ptToPx(3),
+            {
+                size:
+                    14,
+                bold:
+                    true,
+                align:
+                    "left"
+            }
+        );
+
+        /*
+           -------------------------------------------------
+           รายการ 1
+           -------------------------------------------------
+        */
+        drawInlineSignature(
+            ctx,
+            middleLeft,
+            ptToPx(38),
+            middleWidth,
+            "หัวหน้างานวัดผลและประเมินผล"
+        );
+
+        /*
+           -------------------------------------------------
+           รายการ 2
+           -------------------------------------------------
+        */
+        drawInlineSignature(
+            ctx,
+            middleLeft,
+            ptToPx(72),
+            middleWidth,
+            "หัวหน้างานหลักสูตร"
+        );
+
+        /*
+           -------------------------------------------------
+           รายการ 3
+           -------------------------------------------------
+        */
+        drawInlineSignature(
+            ctx,
+            middleLeft,
+            ptToPx(106),
+            middleWidth,
+            "รองผู้อำนวยการกลุ่มบริหารวิชาการ"
+        );
+
+        /* =================================================
+           COLUMN RIGHT
+        ================================================== */
+        /*
+           -------------------------------------------------
+           อนุมัติ / ไม่อนุมัติ
+           -------------------------------------------------
+        */
+        drawText(
+            ctx,
+            "(........) อนุมัติ",
+            rightX,
+            ptToPx(18),
+            {
+                size:
+                    14,
+                bold:
+                    true,
+                align:
+                    "left"
+            }
+        );
+
+        drawText(
+            ctx,
+            "(........) ไม่อนุมัติ",
+            rightX +
+            rightWidth *
+            0.52,
+            ptToPx(18),
+            {
+                size:
+                    14,
+                bold:
+                    true,
+                align:
+                    "left"
+            }
+        );
+
+        /*
+           -------------------------------------------------
+           ลงชื่อ................................ผู้อำนวยการโรงเรียน
+           -------------------------------------------------
+        */
+        const directorLineY =
+            ptToPx(48);
+
+        const directorSignText =
+            "ลงชื่อ................................";
+
+        /*
+           วาด "ลงชื่อ..."
+        */
+        drawText(
+            ctx,
+            directorSignText,
+            rightX,
+            directorLineY,
+            {
+                size:
+                    14,
+                align:
+                    "left"
+            }
+        );
+
+        /*
+           วัดความกว้างจริงของ
+           "ลงชื่อ................................"
+        */
+        setCanvasFont(
+            ctx,
+            14,
+            false
+        );
+
+        const directorSignWidth =
+            ctx.measureText(
+                directorSignText
+            ).width;
+
+        /*
+           วาดตำแหน่ง
+           ต่อทันทีหลังเส้นลายเซ็น
+        */
+        drawText(
+            ctx,
+            "ผู้อำนวยการโรงเรียน",
+            rightX +
+            directorSignWidth +
+            ptToPx(3),
+            directorLineY,
+            {
+                size:
+                    14,
+                align:
+                    "left"
+            }
+        );
+
+        /*
+           -------------------------------------------------
+           จุดกึ่งกลางของ
+           "ลงชื่อ................................"
+           -------------------------------------------------
+        */
+        const directorTextCenterX =
+            rightX +
+            (
+                directorSignWidth /
+                2
+            );
+
+        /*
+           -------------------------------------------------
+           ชื่อผู้อำนวยการ
+           กึ่งกลางตามความยาว
+           ของ "ลงชื่อ................................"
+           -------------------------------------------------
+        */
+        drawFitText(
+            ctx,
+            "(" +
+            data.director +
+            ")",
+            directorTextCenterX,
+            ptToPx(72),
+            directorSignWidth,
+            {
+                size:
+                    14
+            }
+        );
+
+        /*
+           -------------------------------------------------
+           วันที่
+           กึ่งกลางตามแนวเดียวกัน
+           -------------------------------------------------
+        */
+        drawFitText(
+            ctx,
+            data.date,
+            directorTextCenterX,
+            ptToPx(96),
+            directorSignWidth,
+            {
+                size:
+                    14
+            }
+        );
+    }
+
+    return canvas;
+}
+
+/* =========================================================
+   CANVAS → PNG
+========================================================= */
+function canvasToPngBytes(
+    canvas
+){
+    return new Promise(
+        resolve => {
+            canvas.toBlob(
+                async blob => {
+                    if(!blob){
+                        resolve(
+                            null
+                        );
+                        return;
+                    }
+
+                    const buffer =
+                        await blob.arrayBuffer();
+
+                    resolve(
+                        new Uint8Array(
+                            buffer
+                        )
+                    );
+                },
+                "image/png"
+            );
+        }
+    );
+}
+
+/* =========================================================
+   CHECK TARGET TEXT
+========================================================= */
+async function pageContainsTarget(
+    page
+){
+    const textContent =
+        await page.getTextContent();
+
+    /*
+       รวม Text Item
+    */
+    const text =
+        textContent.items
+            .map(
+                item =>
+                    item.str || ""
+            )
+            .join(" ");
+
+    const normalizedText =
+        normalizeThaiText(
+            text
+        );
+
+    const normalizedTarget =
+        normalizeThaiText(
+            TARGET_TEXT
+        );
+
+    return normalizedText.includes(
+        normalizedTarget
+    );
+}
+
+/* =========================================================
+   CREATE SIGNATURE IMAGES
+========================================================= */
+async function createSignatureImages(
+    pageWidth,
+    pageHeight
+){
+    /*
+       หน้า 1 = 2 cm
+    */
+    const page1HeightPt =
+        cmToPt(
+            PAGE1_HEIGHT_CM
+        );
+
+    /*
+       หน้า 2
+    */
+    const page2HeightPt =
+        PAGE2_HEIGHT_PT;
+
+    /*
+       Width
+    */
+    const pageWidthPx =
+        Math.round(
+            pageWidth /
+            72 *
+            DPI
+        );
+
+    /*
+       Height page 1
+    */
+    const page1HeightPx =
+        Math.round(
+            page1HeightPt /
+            72 *
+            DPI
+        );
+
+    /*
+       Height page 2
+    */
+    const page2HeightPx =
+        Math.round(
+            page2HeightPt /
+            72 *
+            DPI
+        );
+
+    /*
+       PAGE 1
+    */
+    const canvas1 =
+        await createSignatureCanvas(
+            1,
+            pageWidthPx,
+            page1HeightPx
+        );
+
+    /*
+       PAGE 2
+    */
+    const canvas2 =
+        await createSignatureCanvas(
+            2,
+            pageWidthPx,
+            page2HeightPx
+        );
+
+    return {
+        page1HeightPt:
+            page1HeightPt,
+
+        page2HeightPt:
+            page2HeightPt,
+
+        png1:
+            await canvasToPngBytes(
+                canvas1
+            ),
+
+        png2:
+            await canvasToPngBytes(
+                canvas2
+            )
+    };
+}
+
+/* =========================================================
+   PROCESS PDF
+========================================================= */
+async function processPDF(){
+    /*
+       ตรวจไฟล์
+    */
+    if(
+        !pdfFile.files ||
+        !pdfFile.files.length
+    ){
+        showStatus(
+            "❌ กรุณาเลือกไฟล์ PDF ก่อน",
+            "error"
+        );
+        return;
+    }
+
+    processBtn.disabled =
+        true;
+
+    downloadBtn.disabled =
+        true;
+
+    generatedPdfBytes =
+        null;
+
+    resultBox.classList.remove(
+        "show"
+    );
+
+    try {
+
+        /* =================================================
+           FILE
+        ================================================== */
+        const file =
+            pdfFile.files[0];
+
+        originalFileName =
+            file.name;
+
+        if(
+            !/\.pdf$/i.test(
+                file.name
+            )
+        ){
+            throw new Error(
+                "กรุณาเลือกไฟล์ PDF เท่านั้น"
+            );
+        }
+
+        showStatus(
+            "⏳ กำลังประมวลผล...",
+            "info"
+        );
+
+        const arrayBuffer =
+            await file.arrayBuffer();
+
+        /* =================================================
+           PDF.JS
+        ================================================== */
+        const pdfjsLib =
+            await import(
+                "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs"
+            );
+
+        pdfjsLib.GlobalWorkerOptions.workerSrc =
+            "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs";
+
+        const loadingTask =
+            pdfjsLib.getDocument({
+                data:
+                    arrayBuffer.slice(0)
+            });
+
+        const pdf =
+            await loadingTask.promise;
+
+        /* =================================================
+           PDF-LIB
+        ================================================== */
+        const sourcePdf =
+            await PDFDocument.load(
+                arrayBuffer,
+                {
+                    ignoreEncryption:
+                        false
+                }
+            );
+
+        const outputPdf =
+            await PDFDocument.create();
+
+        /* =================================================
+           BASE PAGE
+        ================================================== */
+        const firstPage =
+            sourcePdf.getPage(
+                0
+            );
+
+        const baseWidth =
+            firstPage.getWidth();
+
+        const baseHeight =
+            firstPage.getHeight();
+
+        /* =================================================
+           CREATE SIGNATURE IMAGES
+        ================================================== */
+        showStatus(
+            "⏳ กำลังเตรียมข้อมูล...",
+            "info"
+        );
+
+        const signatures =
+            await createSignatureImages(
+                baseWidth,
+                baseHeight
+            );
+
+        const signatureImage1 =
+            await outputPdf.embedPng(
+                signatures.png1
+            );
+
+        const signatureImage2 =
+            await outputPdf.embedPng(
+                signatures.png2
+            );
+
+        /* =================================================
+           PROCESS EVERY PAGE
+        ================================================== */
+        for(
+            let i = 0;
+            i < pdf.numPages;
+            i++
+        ){
+            showStatus(
+                `⏳ กำลังประมวลผล ${i + 1} / ${pdf.numPages}`,
+                "info"
+            );
+
+            /*
+               อ่านหน้า
+            */
+            const pdfJsPage =
+                await pdf.getPage(
+                    i + 1
+                );
+
+            /*
+               ตรวจข้อความภายในระบบ
+            */
+            const found =
+                await pageContainsTarget(
+                    pdfJsPage
+                );
+
+            /*
+               Copy หน้าต้นฉบับ
+            */
+            const copiedPages =
+                await outputPdf.copyPages(
+                    sourcePdf,
+                    [i]
+                );
+
+            const page =
+                copiedPages[0];
+
+            /*
+               เพิ่มหน้าเดิมเพียงครั้งเดียว
+               ไม่มีการเพิ่มหน้าใหม่
+            */
+            outputPdf.addPage(
+                page
+            );
+
+            /*
+               เลือกแบบลงนาม
+            */
+            const signatureImage =
+                found
+                    ? signatureImage2
+                    : signatureImage1;
+
+            const signatureHeight =
+                found
+                    ? signatures.page2HeightPt
+                    : signatures.page1HeightPt;
+
+            /*
+               ขนาดหน้าปัจจุบัน
+            */
+            const currentWidth =
+                page.getWidth();
+
+            const currentHeight =
+                page.getHeight();
+
+            /*
+               ป้องกันไม่ให้สูงเกินหน้า
+            */
+            const safeHeight =
+                Math.min(
+                    signatureHeight,
+                    currentHeight
+                );
+
+            /*
+               วางลงบนหน้าเดิม
+               x = 0
+               y = 0
+               ไม่มี addPage เพิ่ม
+            */
+            page.drawImage(
+                signatureImage,
+                {
+                    x:
+                        0,
+                    y:
+                        0,
+                    width:
+                        currentWidth,
+                    height:
+                        safeHeight
+                }
+            );
+        }
+
+        /* =================================================
+           SAVE
+        ================================================== */
+        showStatus(
+            "⏳ กำลังสร้างไฟล์ PDF...",
+            "info"
+        );
+
+        generatedPdfBytes =
+            await outputPdf.save();
+
+        /* =================================================
+           RESULT
+        ================================================== */
+        document.getElementById(
+            "resultPages"
+        ).textContent =
+            pdf.numPages;
+
+        resultBox.classList.add(
+            "show"
+        );
+
+        downloadBtn.disabled =
+            false;
+
+        showStatus(
+            "✅ ประมวลผลเสร็จเรียบร้อย",
+            "success"
+        );
+
+    } catch(error){
+        console.error(
+            "PDF Processing Error:",
+            error
+        );
+
+        showStatus(
+            "❌ เกิดข้อผิดพลาด: " +
+            (
+                error.message ||
+                error
+            ),
+            "error"
+        );
+
+    } finally {
+        processBtn.disabled =
+            false;
+    }
+}
+
+/* =========================================================
+   PROCESS
+========================================================= */
+processBtn.addEventListener(
+    "click",
+    processPDF
+);
+
+/* =========================================================
+   DOWNLOAD
+========================================================= */
+downloadBtn.addEventListener(
+    "click",
+    function(){
+        if(
+            !generatedPdfBytes
+        ){
+            showStatus(
+                "❌ ยังไม่มีไฟล์สำหรับดาวน์โหลด",
+                "error"
+            );
+            return;
+        }
+
+        /*
+           Blob
+        */
+        const blob =
+            new Blob(
+                [
+                    generatedPdfBytes
+                ],
+                {
+                    type:
+                        "application/pdf"
+                }
+            );
+
+        const url =
+            URL.createObjectURL(
+                blob
+            );
+
+        const link =
+            document.createElement(
+                "a"
+            );
+
+        /*
+           ชื่อไฟล์
+        */
+        const baseName =
+            originalFileName
+                .replace(
+                    /\.pdf$/i,
+                    ""
+                );
+
+        link.href =
+            url;
+
+        link.download =
+            baseName +
+            "_แนบท้ายลงนาม.pdf";
+
+        document.body.appendChild(
+            link
+        );
+
+        link.click();
+
+        document.body.removeChild(
+            link
+        );
+
+        setTimeout(
+            () => {
+                URL.revokeObjectURL(
+                    url
+                );
+            },
+            1000
+        );
+    }
+);
+</script>
+</body>
+</html>
